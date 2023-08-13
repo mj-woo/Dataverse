@@ -54,10 +54,10 @@ def read_movie(q: Union[str, None] = None):
             return "검색 결과 없음"
     return result
     
-# @app.get("/movies/search/")
-# def search_movies_endpoint(search_query: Union[str, None] = None, db: Session = Depends(get_db)):
-#     movies = crud.search_movies(db, search_query)
-#     return movies
+@app.get("/movies/search/")
+def search_movies_endpoint(search_query: Union[str, None] = None, db: Session = Depends(get_db)):
+    movies = crud.search_movies(db, search_query)
+    return movies
 
 @app.post("/movies/upload/")
 def create_movies(data: list[schemas.Movie], db: Session = Depends(get_db)):
@@ -81,7 +81,7 @@ def filter_movies_by_genre(genres: list[str] = Query(None, description="List of 
     movies = crud.get_genre(db, genres)
     return movies
 
-# @app.post("/delete_all_records/")
-# def delete_records(db: Session = Depends(get_db)):
-#     crud.delete_all_records(db)
-#     return {"message": "All records deleted"}
+@app.post("/delete_all_records/")
+def delete_records(db: Session = Depends(get_db)):
+    crud.delete_all_records(db)
+    return {"message": "All records deleted"}
