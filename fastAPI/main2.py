@@ -17,10 +17,11 @@ app = FastAPI()
 # Configure CORS using middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://smdb-front.vercel.app/"],  # Use ["*"] to allow all origins or specify your allowed domains
+    allow_origins=["https://smdb-front.vercel.app", "http://localhost:3000"],  # Use ["*"] to allow all origins or specify your allowed domains
     allow_methods=["*"],  
     allow_headers=["*"],  
-    allow_credentials=True,  
+    allow_credentials=True, 
+    allow_paths= ["/movies/filter/", "/movies/mostloved/"] 
 )
 
 # Dependency
