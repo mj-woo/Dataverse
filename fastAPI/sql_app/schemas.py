@@ -15,7 +15,7 @@ class Movie(MovieBase):
     distributor: list[str]
     keywords: list[str]
     posterUrl: list[str]
-    vodUrl: list[str]
+    vodUrl: list[list[str]]
 
 class MovieCreate(Movie):
     pass

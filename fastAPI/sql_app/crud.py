@@ -3,7 +3,9 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 from sqlalchemy import and_, or_, func, cast, Integer
 from typing import Union
-import json
+import json, requests
+
+API_KEY = "9ab68902-3f25-4848-8384-3a217a763e5a"
 
 # check if there are duplicate movies
 def get_movie_match(db: Session, openDate: str, title: str, runningTimeMinute: str, titleEng: str):
@@ -82,6 +84,61 @@ def get_genre(db: Session, genres: list[str]):
         return matching_movies
 
     return query.all()
+
+def all_movies_dataset(dataset_list: list, result: list, final:list):
+    for movie in dataset_list:
+        for filtered_movie in result:
+            if movie['name'] == filtered_movie.title and json.loads(movie["description"])['synopsis']['plotText'] == json.loads(filtered_movie.synopsis)['plotText']:
+                final.append(json.loads(movie["description"]))
+    return final
+
+def searchquery(db: Session, genres: list[str], openyear: Union[int, None]=0, endyear: Union[int, None]=9999, q: Union[str,None]=None):
+    result = filtering(db, genres, openyear, endyear)
+    final = []
+    if q is not None:
+        condition = True
+        start = 0
+        rows = 10
+        while(condition):
+            url = f"https://snu.dataverse.ac.kr/api/search?q={q}&subtree=movies&start={start}"
+            headers = {
+                "X-Dataverse-key": API_KEY
+            }
+            response = requests.get(url, headers = headers)
+            total = response.json()["data"]["total_count"]
+            start = start + rows
+            condition = start < total
+
+            if response.status_code == 200:
+                dataset_list = response.json()["data"]["items"]
+                final = all_movies_dataset(dataset_list, result, final)
+                return final
+            else:
+                return "검색 결과 없음"
+            
+    return result
+
+# filtering tool: filter movies by range of year released and genres
+def filtering(db: Session, genres: list[str], openyear: Union[int, None]=0, endyear: Union[int, None]=9999, q: Union[str,None]=None):
+    query = db.query(models.Movie).filter(models.Movie.openDate != None)
+
+    if openyear is not None:
+        query = query.filter(func.cast(func.substring(models.Movie.openDate, 1, 4), Integer) >= openyear)
+    if endyear is not None:
+        query = query.filter(func.cast(func.substring(models.Movie.openDate, 1, 4), Integer) <= endyear)
+    if genres is not None and genres:
+        matching_movies = []
+        for movie in query.all():
+            movie_genres = json.loads(movie.genre)
+            if any(genre in movie_genres for genre in genres):
+                matching_movies.append(movie)
+
+        # Sort the matching movies by openDate in descending order
+        matching_movies.sort(key=lambda movie: movie.openDate, reverse=True)
+        return matching_movies
+    
+    matching_movies = query.order_by(models.Movie.openDate.desc()).all()
+    return matching_movies
 
 # Delete all from the databse
 def delete_all_records(db: Session):

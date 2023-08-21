@@ -23,14 +23,18 @@ class Movie(Base):
     vodUrl = Column(String)
 
     def set_list_field(self, field_name, data_list):
-        setattr(self, field_name, json.dumps(data_list, ensure_ascii=False))
+        current_data = self.get_list_field(field_name)
+        current_data.extend(data_list)
+        setattr(self, field_name, json.dumps(current_data, ensure_ascii=False))
+
+    def set_dict_field(self, field_name, data_dict):
+        current_data = self.get_dict_field(field_name)
+        current_data.update(data_dict)
+        setattr(self, field_name, json.dumps(current_data, ensure_ascii=False))
 
     def get_list_field(self, field_name):
         field_value = getattr(self, field_name)
         return json.loads(field_value) if field_value else []
-    
-    def set_dict_field(self, field_name, data_dict):
-        setattr(self, field_name, json.dumps(data_dict, ensure_ascii=False))
 
     def get_dict_field(self, field_name):
         field_value = getattr(self, field_name)
