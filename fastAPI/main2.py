@@ -21,7 +21,7 @@ app.add_middleware(
     allow_methods=["*"],  
     allow_headers=["*"],  
     allow_credentials=True, 
-    allow_paths= ["/movies/filter/", "/movies/mostloved/"] 
+    allow_paths= ["/movies/filter/", "/movies/mostloved/", "/movies/onscreen", "/movies/comingsoon", "/movies/offscreen"] 
 )
 
 # Dependency
