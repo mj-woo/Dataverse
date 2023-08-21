@@ -5,10 +5,23 @@ import json
 from sqlalchemy.orm import Session
 from sql_app import crud, models, schemas
 from sql_app.database import SessionLocal, engine
+import pandas as pd
+import datetime
+import ast
+from fastapi.middleware.cors import CORSMiddleware
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+# Configure CORS using middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://smdb-front.vercel.app/"],  # Use ["*"] to allow all origins or specify your allowed domains
+    allow_methods=["*"],  
+    allow_headers=["*"],  
+    allow_credentials=True,  
+)
 
 # Dependency
 def get_db():
@@ -120,29 +133,27 @@ def mostloved(db: Session = Depends(get_db)):
 #     return {"message": "All records deleted"}
 
 
-# @app.get("/movies/today")
-# def today():
-#     file_path = "C:\projects\myapi\KOBIS_일별_박스오피스_2023-06-06.xlsx"
-#     daily_boxoffice =  pd.read_excel(file_path, skiprows=6)
-#     daily_boxoffice.reset_index(drop=True, inplace=True) # 제거한 행에 대한 인덱스 재설정(열이름이 지저분하지만 무시하자)
-#     today_list = daily_boxoffice.iloc[:,1].tolist() # today_list: 일별 박스오피스 영화 list
-#     today_list = pd.Series(today_list).dropna().tolist()
-#     return today_list
+def today():
+    file_path = "./kobis 8_21.csv"
+    daily_boxoffice =  pd.read_csv(file_path, skiprows=6)
+    daily_boxoffice.reset_index(drop=True, inplace=True) # 제거한 행에 대한 인덱스 재설정(열이름이 지저분하지만 무시하자)
+    today_list = daily_boxoffice.iloc[:,1].tolist() # today_list: 일별 박스오피스 영화 list
+    today_list = pd.Series(today_list).dropna().tolist()
+    return today_list
 
 @app.get("/movies/onscreen")
-async def onscreen():
+def onscreen():
     # 1) 상영중 영화 리스트
-    global today_list
+    today_list = today()
     # 2) 상영중 영화 리스트에 대한 반복문
     onscreen_list = []
     for movie in today_list:
         # movies dataverse에서 영화명 검색
-        API_KEY = "9ab68902-3f25-4848-8384-3a217a763e5a"
         url = f"https://snu.dataverse.ac.kr/api/search?q={movie}&subtree=movies&"
         headers = {
             "X-Dataverse-key": API_KEY
         }
-        response = requests.get(url, headers = headers, timeout=5)
+        response = requests.get(url, headers = headers)
 
         if response.status_code == 200:
             result = response.json()["data"]["items"]
@@ -155,7 +166,7 @@ async def onscreen():
     return onscreen_list
 
 @app.get("/movies/comingsoon")
-async def comingsoon():
+def comingsoon():
     comingsoon_list = []
     condition = True
     start = 0
@@ -189,7 +200,7 @@ async def comingsoon():
 
 # 6. 상영 완료
 @app.get("/movies/offscreen")
-async def offscreen():
+def offscreen():
     global today_list
     offscreen_list = []
     condition = True
