@@ -112,10 +112,11 @@ def searchquery(db: Session, genres: list[str], openyear: Union[int, None]=0, en
             if response.status_code == 200:
                 dataset_list = response.json()["data"]["items"]
                 final = all_movies_dataset(dataset_list, result, final)
+                final.append(len(final))
                 return final
             else:
                 return "검색 결과 없음"
-            
+    result.append(len(result))
     return result
 
 # filtering tool: filter movies by range of year released and genres
@@ -129,15 +130,36 @@ def filtering(db: Session, genres: list[str], openyear: Union[int, None]=0, endy
     if genres is not None and genres:
         matching_movies = []
         for movie in query.all():
-            movie_genres = json.loads(movie.genre)
+            # movie_genres = json.loads(movie.genre)
+            movie_genres = movie.get_list_field('genre')
             if any(genre in movie_genres for genre in genres):
+                movie.genre =  movie.get_list_field('genre')
+                movie.directors =  movie.get_list_field('directors')
+                movie.distributor =  movie.get_list_field('distributor')
+                movie.posterUrl =  movie.get_list_field('posterUrl')
+                movie.actors =  movie.get_list_field('actors')
+                movie.producer =  movie.get_list_field('producer')
+                movie.keywords =  movie.get_list_field('keywords')
+                movie.vodUrl =  movie.get_list_field('vodUrl')
+                movie.synopsis =  movie.get_dict_field('synopsis')
                 matching_movies.append(movie)
 
         # Sort the matching movies by openDate in descending order
         matching_movies.sort(key=lambda movie: movie.openDate, reverse=True)
+            
         return matching_movies
     
     matching_movies = query.order_by(models.Movie.openDate.desc()).all()
+    for movie in matching_movies:
+        movie.genre =  movie.get_list_field('genre')
+        movie.directors =  movie.get_list_field('directors')
+        movie.distributor =  movie.get_list_field('distributor')
+        movie.posterUrl =  movie.get_list_field('posterUrl')
+        movie.actors =  movie.get_list_field('actors')
+        movie.producer =  movie.get_list_field('producer')
+        movie.keywords =  movie.get_list_field('keywords')
+        movie.vodUrl =  movie.get_list_field('vodUrl')
+        movie.synopsis =  movie.get_dict_field('synopsis')
     return matching_movies
 
 # Delete all from the databse

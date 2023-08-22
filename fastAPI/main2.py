@@ -9,6 +9,7 @@ import pandas as pd
 import datetime
 import ast
 from fastapi.middleware.cors import CORSMiddleware
+from enum import Enum
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -97,8 +98,20 @@ def all_movies(dataset_list: list, result: list):
 #     movies = crud.get_genre(db, genres)
 #     return movies
 
+class Genre(str, Enum):
+    action = "액션"
+    drama = "드라마"
+    comedy = "코미디"
+    thriller = "스릴러"
+    fantasy = "SF/판타지"
+    romance = "로맨스"
+    adventure = "어드벤처"
+    horror = "공포"
+    crime = "범죄"
+    animation = "애니메이션"
+
 @app.get("/movies/filter/")
-def filter(openyear: Union[int, None] = None, endyear: Union[int, None] = None, genres: list[str] = Query(None, description="List of genres to filter by"), 
+def filter(openyear: Union[int, None] = None, endyear: Union[int, None] = None, genres: list[Genre] = Query(None, description="List of genres to filter by"), 
            q: Union[str, None] = None, db: Session = Depends(get_db)):
     movies = crud.searchquery(db, genres, openyear, endyear, q)
     return movies
@@ -125,6 +138,7 @@ def mostloved(db: Session = Depends(get_db)):
             result = all_movies(dataset_list, result)
         else:
             return "검색 결과 없음"
+    result.append(len(result))
     return result
 
 # @app.post("/delete_all_records/")
