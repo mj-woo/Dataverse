@@ -21,7 +21,6 @@ app.add_middleware(
     allow_methods=["*"],  
     allow_headers=["*"],  
     allow_credentials=True, 
-    allow_paths= ["/movies/filter/", "/movies/mostloved/", "/movies/onscreen", "/movies/comingsoon", "/movies/offscreen"] 
 )
 
 # Dependency
@@ -194,7 +193,7 @@ def comingsoon():
                     opendate_str = description["openDate"] # 문자열 opendate_str
                     if opendate_str != '': # opendate가 있을 경우, datetime 형태로 변환
                         opendate = datetime.datetime.strptime(opendate_str, "%Y.%m.%d").date()
-                        if opendate > date.today(): # 개봉일 > 오늘 날짜일 경우 commingsoon_list에 해당 영화 description 추가
+                        if opendate > datetime.date.today(): # 개봉일 > 오늘 날짜일 경우 commingsoon_list에 해당 영화 description 추가
                             comingsoon_list.append(description)
                         else: continue
     return comingsoon_list
@@ -229,7 +228,7 @@ def offscreen():
                     opendate_str = description["openDate"] # 문자열 opendate_str
                     if opendate_str != '': # opendate가 있을 경우, datetime 형태로 변환
                         opendate = datetime.datetime.strptime(opendate_str, "%Y.%m.%d").date()
-                        if (opendate < date.today())&(movie not in today_list): # 개봉일 <  오늘 날짜일 경우 commingsoon_list에 해당 영화 description 추가
+                        if (opendate < datetime.date.today())&(movie not in today_list): # 개봉일 <  오늘 날짜일 경우 commingsoon_list에 해당 영화 description 추가
                             offscreen_list.append(description)
                         else: continue
                     else: continue
