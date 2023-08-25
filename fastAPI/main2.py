@@ -157,135 +157,108 @@ def today():
 
 @app.get("/movies/onscreen")
 def onscreen():
-    # 1) 상영중 영화 리스트
-    today_list = today()
-    # 2) 상영중 영화 리스트에 대한 반복문
-    onscreen_list = []
-    for movie in today_list:
-        # movies dataverse에서 영화명 검색
-        url = f"https://snu.dataverse.ac.kr/api/search?q={movie}&subtree=movies&"
-        headers = {
-            "X-Dataverse-key": API_KEY
-        }
-        response = requests.get(url, headers = headers)
+  onscreen_list = []
+  # 일별 박스오피스 100개의 영화에 대한 반복문
+  for movie in today_list:
+    #1) movies dataverse에서 영화명 검색
+    API_KEY = "9ab68902-3f25-4848-8384-3a217a763e5a"
+    url = f"https://snu.dataverse.ac.kr/api/search?q={movie}&subtree=movies&"
+    headers = {
+        "X-Dataverse-key": API_KEY
+    }
+    response = requests.get(url, headers = headers)
 
-        if response.status_code == 200:
-            result = response.json()["data"]["items"]
-            if not result:  # 검색 결과가 없는 경우
-                print(f"[Warning] {movie}에 대한 검색 결과가 없습니다.")
-            else:  # 데이터셋명이 영화명과 동일한 경우 해당 영화의 description을 onscreen_list에 넣기
-                for item in result:
-                    if item['name'] == movie:
-                        onscreen_list.append(ast.literal_eval(item['description']))
+    #2) response 확인
+    if response.status_code != 200:
+      continue # 검색 요청 실패한 경우 건너뜀
+    result = response.json()["data"]["items"]
+
+    #3) 검색결과 확인
+    #3-1) 검색 결과가 아예 없는 경우
+    if not result:
+      print(f"'{movie}' 검색 결과 없음")
+      continue
+    #3-2) 검색 결과를 모두 확인
+    for item in result:
+        if item['name'] == movie:
+            onscreen_list.append(item['description']) # 데이터셋명과 일치하는 경우 onscreen_list에 추가
+            found = True
+            break
+    #3-3) 검색 결과 중 데이터셋명과 일치하는 항목이 없는 경우
+    if not found:
+        print(f"'{movie}' 검색 결과 없음")
+
     return onscreen_list
 
 @app.get("/movies/comingsoon")
 def comingsoon():
-    comingsoon_list = []
-    condition = True
-    start = 0
-    rows = 1000
-    # 1000개씩 반복해서 정보 불러오기
-    while(condition):
-        url = f"https://snu.dataverse.ac.kr/api/search?q=*&subtree=movies&sort=name&order=asc&per_page=1000&start={start}"
-        headers = {
-                "X-Dataverse-key": "9ab68902-3f25-4848-8384-3a217a763e5a"
-            }
-        response = requests.get(url, headers = headers)
-        
-        # 1) 영화 1000개 단위로 불러오기
-        total = response.json()["data"]["total_count"]
-        start = start + rows
-        condition = start < total
+  comingsoon_list = []
+  condition = True
+  start = 0
+  rows = 1000
+  # 1000개씩 반복해서 정보 불러오기
+  while(condition):
+    url = f"https://snu.dataverse.ac.kr/api/search?q=*&subtree=movies&sort=name&order=asc&per_page=1000&start={start}"
+    headers = {
+            "X-Dataverse-key": "9ab68902-3f25-4848-8384-3a217a763e5a"
+        }
+    response = requests.get(url, headers = headers)
 
-        # 2) 각 영화의 description 불러와서 개봉일과 오늘날짜 비교하기
-        if response.status_code == 200:
-            dataset_list = response.json()["data"]["items"]
-            for movie in dataset_list:
-                if movie.get("description"): # description 필드가 비어있지 않은 경우 출력
-                    description = eval(movie['description']) # 문자열 description을 딕셔너리 형태로 변환
-                    opendate_str = description["openDate"] # 문자열 opendate_str
-                    if opendate_str != '': # opendate가 있을 경우, datetime 형태로 변환
-                        opendate = datetime.datetime.strptime(opendate_str, "%Y.%m.%d").date()
-                        if opendate > datetime.date.today(): # 개봉일 > 오늘 날짜일 경우 commingsoon_list에 해당 영화 description 추가
-                            comingsoon_list.append(description)
-                        else: continue
-    return comingsoon_list
+    # 1) 영화 1000개 단위로 불러오기
+    total = response.json()["data"]["total_count"]
+    start = start + rows
+    condition = start < total
 
+    # 2) 각 영화의 description 불러와서 개봉일과 오늘날짜 비교하기
+    if response.status_code == 200:
+      dataset_list = response.json()["data"]["items"]
+      for movie in dataset_list:
+        if movie.get("description"): # description 필드가 비어있지 않은 경우 출력
+          description = json.loads(movie['description']) # 문자열 description을 딕셔너리 형태로 변환
+          opendate_str = description["openDate"] # 문자열 opendate_str
+          if opendate_str != '': # opendate가 있을 경우, datetime 형태로 변환
+            opendate = datetime.datetime.strptime(opendate_str, "%Y.%m.%d").date()
+            if opendate > date.today(): # 개봉일 > 오늘 날짜일 경우 commingsoon_list에 해당 영화 description 추가
+              comingsoon_list.append(description)
+  return comingsoon_list
+    
 # 6. 상영 완료
 @app.get("/movies/offscreen")
-def offscreen():
-    global today_list
-    offscreen_list = []
-    condition = True
-    start = 0
-    rows = 1000
-    # 1000개씩 반복해서 정보 불러오기
-    while(condition):
-        url = f"https://snu.dataverse.ac.kr/api/search?q=*&subtree=movies&sort=name&order=asc&per_page=1000&start={start}"
-        headers = {
-                "X-Dataverse-key": "9ab68902-3f25-4848-8384-3a217a763e5a"
-            }
-        response = requests.get(url, headers = headers)
-        
-        # 1) 영화 1000개 단위로 불러오기
-        total = response.json()["data"]["total_count"]
-        start = start + rows
-        condition = start < total
-
-        # 2) 각 영화의 description 불러와서 개봉일과 오늘날짜 비교하기
-        if response.status_code == 200:
-            dataset_list = response.json()["data"]["items"]
-            for movie in dataset_list:
-                if movie.get("description"): # description 필드가 비어있지 않은 경우 출력
-                    description = eval(movie['description']) # 문자열 description을 딕셔너리 형태로 변환
-                    opendate_str = description["openDate"] # 문자열 opendate_str
-                    if opendate_str != '': # opendate가 있을 경우, datetime 형태로 변환
-                        opendate = datetime.datetime.strptime(opendate_str, "%Y.%m.%d").date()
-                        if (opendate < datetime.date.today())&(movie not in today_list): # 개봉일 <  오늘 날짜일 경우 commingsoon_list에 해당 영화 description 추가
-                            offscreen_list.append(description)
-                        else: continue
-                    else: continue
-    return offscreen_list
-
-# 7. Movie ID
-@app.get("/movieid/{movie_code}")
-async def movieid(movie_code):
-    # 1) movie_code를 통해 kobis Open API로부터 영화 정보 얻기
-    # 영화 상세정보 요청 url
-    url: str = "http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieInfo.json"
-    kobis_key = "8616582b33a50c5fa6b24e2155b5c1e3"
-
-    # query parameter
-    params: dict = {"key": kobis_key,
-                    "movieCd": movie_code}
-
-    # HTTP response
-    response = requests.get(url, params=params)
-
-    # JSON deserialize
-    response_json = json.loads(response.text)
-    result = response_json["movieInfoResult"]['movieInfo']
-
-    # get running time and a movie name
-    runtime_kobis = result["showTm"]
-    moviename_kobis = result["movieNm"]
-
-    # 2) Open API로부터 얻은 영화명 정보를 Movies Dataverse에 검색
-    # search the movie name in dataverse
-    API_KEY = "9ab68902-3f25-4848-8384-3a217a763e5a"
-    url = f"https://snu.dataverse.ac.kr/api/search?q={moviename_kobis}&subtree=movies&"
+def comingsoon():
+  offscreen_list = []
+  condition = True
+  start = 0
+  rows = 1000
+  # 1000개씩 반복해서 정보 불러오기
+  while(condition):
+    url = f"https://snu.dataverse.ac.kr/api/search?q=*&subtree=movies&sort=name&order=asc&per_page=1000&start={start}"
     headers = {
-        "X-Dataverse-key": API_KEY
-    }
-    response = requests.get(url, headers = headers, timeout=5)
+            "X-Dataverse-key": "9ab68902-3f25-4848-8384-3a217a763e5a"
+        }
+    response = requests.get(url, headers = headers)
 
-    # if there is no error, retrive search results
+    # 1) 영화 1000개 단위로 불러오기
+    total = response.json()["data"]["total_count"]
+    start = start + rows
+    condition = start < total
+
+    # 2) 각 영화의 description 불러와서 개봉일과 오늘날짜 비교하기
     if response.status_code == 200:
-        result = response.json()["data"]["items"]
-        if not result:  # 검색 결과가 없는 경우
-            print(f"[Warning] {moviename_kobis}에 대한 검색 결과가 없습니다.")
-        else:  # 데이터셋명이 영화명과 동일한 경우 해당 영화의 description을 출력
-            for item in result:
-                if item['description']["runningTimeMinute"] == runtime_kobis: # 러닝타임이 kobis Open API로부터 얻은 정보와 동일할 경우 영화 메타데이터 리턴
-                    return item['description']
+      dataset_list = response.json()["data"]["items"]
+      for movie in dataset_list:
+        if movie.get("description"): # description 필드가 비어있지 않은 경우 출력
+          description = json.loads(movie['description']) # 문자열 description을 딕셔너리 형태로 변환
+          opendate_str = description["openDate"] # 문자열 opendate_str
+          if opendate_str != '': # opendate가 있을 경우, datetime 형태로 변환
+            opendate = datetime.datetime.strptime(opendate_str, "%Y.%m.%d").date()
+            if opendate < date.today() and movie not in today_list:
+                offscreen_list.append(description)
+  return offscreen_list
+    
+# 7. Movie ID
+@app.get("/movies/{id}")
+def read_movie(id: int, db: Session = Depends(get_db)):
+    movie = db.query(models.Movie).filter(models.Movie.id == id).first()
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    return movie
