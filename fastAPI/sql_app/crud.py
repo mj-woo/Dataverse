@@ -39,6 +39,17 @@ def insert_data_into_db(db: Session, data: schemas.Movie):
     db.refresh(db_movie)
     return db_movie
 
+# find matching movies by comparing data between Dataverse and SQLite database 
+def movies_with_id_data(dataset_list: list, db: Session):
+    data_with_id = []
+    sql_moviedata = db.query(models.Movie).all()
+    for movie in dataset_list: # Dataverse
+        for filtered_movie in sql_moviedata:
+            if movie['title'] == filtered_movie.title and movie['synopsis']['plotText'] == json.loads(filtered_movie.synopsis)['plotText']:
+                # final.append(json.loads(movie["description"]))
+                data_with_id.append(filtered_movie)
+    return data_with_id
+
 # search movie : accessing from the SQLite database. 
 def search_movies(db: Session, search_query: Union[str, None] = None):
     query = db.query(models.Movie)
@@ -85,17 +96,21 @@ def get_genre(db: Session, genres: list[str]):
 
     return query.all()
 
+# find matching movies by comparing data between Dataverse and SQLite database 
 def all_movies_dataset(dataset_list: list, result: list, final:list):
     for movie in dataset_list:
         for filtered_movie in result:
             if movie['name'] == filtered_movie.title and json.loads(movie["description"])['synopsis']['plotText'] == (filtered_movie.synopsis)['plotText']:
-                final.append(json.loads(movie["description"]))
+                # final.append(json.loads(movie["description"]))
+                final.append(filtered_movie)
     return final
 
+# returns filtered movies based on the user's query / filter options
 def searchquery(db: Session, genres: list[str], openyear: Union[int, None]=0, endyear: Union[int, None]=9999, offset: int = 0,
 limit: int = 10, q: Union[str,None]=None):
     result = filtering(db, genres, openyear, endyear)
     final = []
+    to_return = {}
     if q is not None:
         start = 0
         rows = 10
@@ -122,8 +137,9 @@ limit: int = 10, q: Union[str,None]=None):
             
     # Apply offset and limit to the final result
     paginated_final = final[offset : offset + limit]
-    paginated_final.append(len(paginated_final))  # Adding total count
-    return paginated_final
+    to_return['data'] = paginated_final
+    to_return['totalCount'] = len(paginated_final)
+    return to_return
 
 # filtering tool: filter movies by range of year released and genres
 def filtering(db: Session, genres: list[str], openyear: Union[int, None]=0, endyear: Union[int, None]=9999, q: Union[str,None]=None):
