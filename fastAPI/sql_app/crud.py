@@ -120,11 +120,14 @@ limit: int = 10, q: Union[str,None]=None):
     result = filtering(db, genres, openyear, endyear)
     final = []
     to_return = {}
+    return_startidx = offset
+    return_endidx = limit
+    is_last = False
+    contidion = True
+
     if q is not None:
-        start = 0
-        rows = 10
-        while(True):
-            url = f"https://snu.dataverse.ac.kr/api/search?q={q}&subtree=movies&start={start}"
+        while(condition):
+            url = f"https://snu.dataverse.ac.kr/api/search?q={q}&subtree=movies&start={offset}&per_page={limit}"
             headers = {
                 "X-Dataverse-key": API_KEY
             }
@@ -135,19 +138,24 @@ limit: int = 10, q: Union[str,None]=None):
                 final = all_movies_dataset(dataset_list, result, final)
 
                 total = response.json()["data"]["total_count"]
-                start += rows
+                offset += limit
+                condition = offset < total
 
-                if start >= total:
-                    break
             else:
                 return "검색 결과 없음"
     else:
         final = result
+
+    original_data_len = len(final)
+
+    if return_startidx + return_endidx >= original_data_len:
+       is_last = True
+    to_return['isLast'] = is_last
             
     # Apply offset and limit to the final result
-    paginated_final = final[offset : offset + limit]
+    paginated_final = final[return_startidx : return_startidx + return_endidx]
     to_return['data'] = paginated_final
-    to_return['totalCount'] = len(paginated_final)
+    to_return['totalCount'] = original_data_len
     return to_return
 
 # filtering tool: filter movies by range of year released and genres
