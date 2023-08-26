@@ -92,32 +92,38 @@ def all_movies_dataset(dataset_list: list, result: list, final:list):
                 final.append(json.loads(movie["description"]))
     return final
 
-def searchquery(db: Session, genres: list[str], openyear: Union[int, None]=0, endyear: Union[int, None]=9999, q: Union[str,None]=None):
+def searchquery(db: Session, genres: list[str], openyear: Union[int, None]=0, endyear: Union[int, None]=9999, offset: int = 0,
+limit: int = 10, q: Union[str,None]=None):
     result = filtering(db, genres, openyear, endyear)
     final = []
     if q is not None:
-        condition = True
         start = 0
         rows = 10
-        while(condition):
+        while(True):
             url = f"https://snu.dataverse.ac.kr/api/search?q={q}&subtree=movies&start={start}"
             headers = {
                 "X-Dataverse-key": API_KEY
             }
             response = requests.get(url, headers = headers)
-            total = response.json()["data"]["total_count"]
-            start = start + rows
-            condition = start < total
 
             if response.status_code == 200:
                 dataset_list = response.json()["data"]["items"]
                 final = all_movies_dataset(dataset_list, result, final)
-                final.append(len(final))
-                return final
+
+                total = response.json()["data"]["total_count"]
+                start += rows
+
+                if start >= total:
+                    break
             else:
                 return "검색 결과 없음"
-    result.append(len(result))
-    return result
+    else:
+        final = result
+            
+    # Apply offset and limit to the final result
+    paginated_final = final[offset : offset + limit]
+    paginated_final.append(len(paginated_final))  # Adding total count
+    return paginated_final
 
 # filtering tool: filter movies by range of year released and genres
 def filtering(db: Session, genres: list[str], openyear: Union[int, None]=0, endyear: Union[int, None]=9999, q: Union[str,None]=None):
