@@ -88,7 +88,7 @@ def get_genre(db: Session, genres: list[str]):
 def all_movies_dataset(dataset_list: list, result: list, final:list):
     for movie in dataset_list:
         for filtered_movie in result:
-            if movie['name'] == filtered_movie.title and json.loads(movie["description"])['synopsis']['plotText'] == json.loads(filtered_movie.synopsis)['plotText']:
+            if movie['name'] == filtered_movie.title and json.loads(movie["description"])['synopsis']['plotText'] == (filtered_movie.synopsis)['plotText']:
                 final.append(json.loads(movie["description"]))
     return final
 
