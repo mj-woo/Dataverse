@@ -47,6 +47,15 @@ def movies_with_id_data(dataset_list: list, db: Session):
         for filtered_movie in sql_moviedata:
             if movie['title'] == filtered_movie.title and movie['synopsis']['plotText'] == json.loads(filtered_movie.synopsis)['plotText']:
                 # final.append(json.loads(movie["description"]))
+                filtered_movie.genre =  filtered_movie.get_list_field('genre')
+                filtered_movie.directors =  filtered_movie.get_list_field('directors')
+                filtered_movie.distributor =  filtered_movie.get_list_field('distributor')
+                filtered_movie.posterUrl =  filtered_movie.get_list_field('posterUrl')
+                filtered_movie.actors =  filtered_movie.get_list_field('actors')
+                filtered_movie.producer =  filtered_movie.get_list_field('producer')
+                filtered_movie.keywords =  filtered_movie.get_list_field('keywords')
+                filtered_movie.vodUrl =  filtered_movie.get_list_field('vodUrl')
+                filtered_movie.synopsis =  filtered_movie.get_dict_field('synopsis')
                 data_with_id.append(filtered_movie)
     return data_with_id
 
