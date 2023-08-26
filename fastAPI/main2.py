@@ -94,6 +94,7 @@ def mostloved(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     condition = True
     return_startidx = offset
     return_endidx = limit
+    is_last = False
 
     while(condition):
         url = f"https://snu.dataverse.ac.kr/api/search?q=*&subtree=mostloved&start={offset}&per_page={limit}"
@@ -111,6 +112,10 @@ def mostloved(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
         else:
             return "검색 결과 없음"
     original_data_len = len(result)
+
+    if return_startidx + return_endidx >= original_data_len:
+       is_last = True
+    to_return['isLast'] = is_last
 
     paginated_final = result[return_startidx : return_startidx + return_endidx]
     to_return['data'] = crud.movies_with_id_data(paginated_final, db)
@@ -271,7 +276,7 @@ def comingsoon(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
   return to_return
     
 # get movies via Movie ID in database
-@app.get("/movies/{id}")
+@app.get("/movies/detail/{id}")
 def read_movie(id: int, db: Session = Depends(get_db)):
     movie = db.query(models.Movie).filter(models.Movie.id == id).first()
     movie.genre =  movie.get_list_field('genre')
