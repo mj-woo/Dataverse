@@ -42,6 +42,17 @@ def all_movies(dataset_list: list, result: list):
         result.append(json.loads(movie['description']))
     return result
 
+# find matching movies by comparing data between Dataverse and SQLite database 
+# def movies_with_id_data(dataset_list: list, db: Session = Depends(get_db)):
+#     data_with_id = []
+#     sql_moviedata = db.query(models.Movie).all()
+#     for movie in dataset_list: # Dataverse
+#         for filtered_movie in sql_moviedata:
+#             if movie['name'] == filtered_movie.title and json.loads(movie["description"])['synopsis']['plotText'] == (filtered_movie.synopsis)['plotText']:
+#                 # final.append(json.loads(movie["description"]))
+#                 data_with_id.append(filtered_movie)
+#     return data_with_id
+
 # @app.post("/movies/upload/")
 # def create_movies(data: list[schemas.Movie], db: Session = Depends(get_db)):
 #     results = []
@@ -79,6 +90,7 @@ def filter(openyear: Union[int, None] = None, endyear: Union[int, None] = None, 
 @app.get("/movies/mostloved/")
 def mostloved(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     result = []
+    to_return = {}
     condition = True
     return_startidx = offset
     return_endidx = limit
@@ -100,8 +112,9 @@ def mostloved(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
             return "검색 결과 없음"
 
     paginated_final = result[return_startidx : return_startidx + return_endidx]
-    paginated_final.append(len(paginated_final))
-    return paginated_final
+    to_return['data'] = crud.movies_with_id_data(paginated_final, db)
+    to_return['totalCount'] = len(paginated_final)
+    return to_return
 
 # @app.post("/delete_all_records/")
 # def delete_records(db: Session = Depends(get_db)):
@@ -119,10 +132,12 @@ def today():
 
 # returns movies that are currently on screen 
 @app.get("/movies/onscreen")
-def onscreen(offset: int = 0, limit: int = 10):
+def onscreen(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
   onscreen_list = []
+  to_return = {}
   return_startidx = offset
   return_endidx = limit
+  is_last = False
 
   # Box Ofice top 100 movies list
   today_list = today()
@@ -149,15 +164,26 @@ def onscreen(offset: int = 0, limit: int = 10):
     if not found:
         print(f"'{movie}' 검색 결과 없음")
 
+    original_data_len = len(onscreen_list)
+
     paginated_final = onscreen_list[return_startidx : return_startidx + return_endidx]
-    paginated_final.append(len(paginated_final))
-    return paginated_final
+    to_return['data'] = crud.movies_with_id_data(paginated_final, db)
+
+    # check if it is the last page
+    if return_startidx + return_endidx >= original_data_len:
+       is_last = True
+    to_return['isLast'] = is_last
+
+    to_return['totalCount'] = len(paginated_final)
+    return to_return
 
 # returns movies that are will be released in the coming two years
 @app.get("/movies/comingsoon")
-def comingsoon(offset: int = 0, limit: int = 10):
+def comingsoon(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
   return_startidx = offset
   return_endidx = limit
+  to_return = {}
+  is_last = False
   
   comingsoon_list = []
   condition = True
@@ -186,15 +212,24 @@ def comingsoon(offset: int = 0, limit: int = 10):
             if opendate > datetime.date.today(): 
               comingsoon_list.append(description)
 
+  original_data_len = len(comingsoon_list)
   paginated_final = comingsoon_list[return_startidx : return_startidx + return_endidx]
-  paginated_final.append(len(paginated_final))
-  return paginated_final
+  to_return['data'] = crud.movies_with_id_data(paginated_final, db)
+
+  if return_startidx + return_endidx >= original_data_len:
+       is_last = True
+  to_return['isLast'] = is_last
+  
+  to_return['totalCount'] = len(paginated_final)
+  return to_return
     
 # returns movies that are off screen
 @app.get("/movies/offscreen")
-def comingsoon(offset: int = 0, limit: int = 10):
+def comingsoon(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
   return_startidx = offset
   return_endidx = limit
+  to_return = {}
+  is_last = False
 
   today_list = today()
   offscreen_list = []
@@ -224,14 +259,29 @@ def comingsoon(offset: int = 0, limit: int = 10):
             if opendate < datetime.date.today() and movie not in today_list:
                 offscreen_list.append(description)
 
+  original_data_len = len(offscreen_list)
   paginated_final = offscreen_list[return_startidx : return_startidx + return_endidx]
-  paginated_final.append(len(paginated_final))
-  return paginated_final
+  if return_startidx + return_endidx >= original_data_len:
+       is_last = True
+  to_return['isLast'] = is_last
+
+  to_return['data'] = crud.movies_with_id_data(paginated_final, db)
+  to_return['totalCount'] = len(paginated_final)
+  return to_return
     
 # get movies via Movie ID in database
 @app.get("/movies/{id}")
 def read_movie(id: int, db: Session = Depends(get_db)):
     movie = db.query(models.Movie).filter(models.Movie.id == id).first()
+    movie.genre =  movie.get_list_field('genre')
+    movie.directors =  movie.get_list_field('directors')
+    movie.distributor =  movie.get_list_field('distributor')
+    movie.posterUrl =  movie.get_list_field('posterUrl')
+    movie.actors =  movie.get_list_field('actors')
+    movie.producer =  movie.get_list_field('producer')
+    movie.keywords =  movie.get_list_field('keywords')
+    movie.vodUrl =  movie.get_list_field('vodUrl')
+    movie.synopsis =  movie.get_dict_field('synopsis')
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
     return movie
