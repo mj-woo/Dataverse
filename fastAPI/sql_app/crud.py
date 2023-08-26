@@ -123,7 +123,7 @@ limit: int = 10, q: Union[str,None]=None):
     return_startidx = offset
     return_endidx = limit
     is_last = False
-    contidion = True
+    condition = True
 
     if q is not None:
         while(condition):
