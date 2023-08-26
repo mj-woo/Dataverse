@@ -110,10 +110,11 @@ def mostloved(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
             condition = offset < total
         else:
             return "검색 결과 없음"
+    original_data_len = len(result)
 
     paginated_final = result[return_startidx : return_startidx + return_endidx]
     to_return['data'] = crud.movies_with_id_data(paginated_final, db)
-    to_return['totalCount'] = len(paginated_final)
+    to_return['totalCount'] = original_data_len
     return to_return
 
 # @app.post("/delete_all_records/")
@@ -174,7 +175,7 @@ def onscreen(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
        is_last = True
     to_return['isLast'] = is_last
 
-    to_return['totalCount'] = len(paginated_final)
+    to_return['totalCount'] = original_data_len
     return to_return
 
 # returns movies that are will be released in the coming two years
@@ -220,7 +221,7 @@ def comingsoon(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
        is_last = True
   to_return['isLast'] = is_last
   
-  to_return['totalCount'] = len(paginated_final)
+  to_return['totalCount'] = original_data_len
   return to_return
     
 # returns movies that are off screen
@@ -266,7 +267,7 @@ def comingsoon(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
   to_return['isLast'] = is_last
 
   to_return['data'] = crud.movies_with_id_data(paginated_final, db)
-  to_return['totalCount'] = len(paginated_final)
+  to_return['totalCount'] = original_data_len
   return to_return
     
 # get movies via Movie ID in database
