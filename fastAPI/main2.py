@@ -42,22 +42,38 @@ def all_movies(dataset_list: list, result: list):
         result.append(json.loads(movie['description']))
     return result
 
-# find matching movies by comparing data between Dataverse and SQLite database 
-# def movies_with_id_data(dataset_list: list, db: Session = Depends(get_db)):
-#     data_with_id = []
-#     sql_moviedata = db.query(models.Movie).all()
-#     for movie in dataset_list: # Dataverse
-#         for filtered_movie in sql_moviedata:
-#             if movie['name'] == filtered_movie.title and json.loads(movie["description"])['synopsis']['plotText'] == (filtered_movie.synopsis)['plotText']:
-#                 # final.append(json.loads(movie["description"]))
-#                 data_with_id.append(filtered_movie)
-#     return data_with_id
+# Search bar tool: search movie; access directly from Dataverse database - to update sqlite database (sync sqlite and dataverse)
+# returns a list with each movie metadata as an item in dict format
+# @app.get("/movies/") 
+# def read_movie(q: Union[str, None] = None):
+#     result = []
+#     condition = True
+#     start = 0
+#     rows = 10
+#     while(condition):
+#         if q == None:
+#             url = f"https://snu.dataverse.ac.kr/api/search?q=*&subtree=movies&start={start}&type=dataset"
+#         else:
+#             url = f"https://snu.dataverse.ac.kr/api/search?q={q}&subtree=movies&start={start}"
+#         headers = {
+#             "X-Dataverse-key": API_KEY
+#         }
+#         response = requests.get(url, headers = headers)
+
+#         if response.status_code == 200:
+#             dataset_list = response.json()["data"]["items"]
+#             result = all_movies(dataset_list, result)
+#             total = response.json()["data"]["total_count"]
+#             start = start + rows
+#             condition = start < total
+#         else:
+#             return "검색 결과 없음"
+#     return result[1001:]
 
 # @app.post("/movies/upload/")
 # def create_movies(data: list[schemas.Movie], db: Session = Depends(get_db)):
 #     results = []
 #     for per_movie in data:
-#         print(per_movie)
 #         db_movie = crud.get_movie_match(db, openDate=per_movie.openDate, title=per_movie.title, titleEng=per_movie.titleEng, runningTimeMinute=per_movie.runningTimeMinute)
 #         if db_movie:
 #             raise HTTPException(status_code=400, detail="Movie already registered")
@@ -97,7 +113,7 @@ def mostloved(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     is_last = False
 
     while(condition):
-        url = f"https://snu.dataverse.ac.kr/api/search?q=*&subtree=mostloved&start={offset}&per_page={limit}"
+        url = f"https://snu.dataverse.ac.kr/api/search?q=*&subtree=smdbmostloved&start={offset}&per_page={limit}"
         headers = {
             "X-Dataverse-key": API_KEY
         }
@@ -231,7 +247,7 @@ def comingsoon(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     
 # returns movies that are off screen
 @app.get("/movies/offscreen")
-def comingsoon(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+def offscreen(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
   return_startidx = offset
   return_endidx = limit
   to_return = {}
@@ -262,7 +278,7 @@ def comingsoon(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
           opendate_str = description["openDate"] 
           if opendate_str != '': 
             opendate = datetime.datetime.strptime(opendate_str, "%Y.%m.%d").date()
-            if opendate < datetime.date.today() and movie not in today_list:
+            if (opendate < datetime.date.today()) and (movie not in today_list):
                 offscreen_list.append(description)
 
   original_data_len = len(offscreen_list)
