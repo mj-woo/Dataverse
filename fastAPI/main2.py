@@ -70,16 +70,16 @@ def all_movies(dataset_list: list, result: list):
 #             return "검색 결과 없음"
 #     return result[1001:]
 
-# @app.post("/movies/upload/")
-# def create_movies(data: list[schemas.Movie], db: Session = Depends(get_db)):
-#     results = []
-#     for per_movie in data:
-#         db_movie = crud.get_movie_match(db, openDate=per_movie.openDate, title=per_movie.title, titleEng=per_movie.titleEng, runningTimeMinute=per_movie.runningTimeMinute)
-#         if db_movie:
-#             raise HTTPException(status_code=400, detail="Movie already registered")
-#         result = crud.insert_data_into_db(db=db, data=per_movie)
-#         results.append(result)
-#     return results
+@app.post("/movies/upload/")
+def create_movies(data: list[schemas.Movie], db: Session = Depends(get_db)):
+    results = []
+    for per_movie in data:
+        db_movie = crud.get_movie_match(db, openDate=per_movie.openDate, title=per_movie.title, titleEng=per_movie.titleEng, runningTimeMinute=per_movie.runningTimeMinute)
+        if db_movie:
+            raise HTTPException(status_code=400, detail="Movie already registered")
+        result = crud.insert_data_into_db(db=db, data=per_movie)
+        results.append(result)
+    return results
 
 class Genre(str, Enum):
     action = "액션"
@@ -138,10 +138,10 @@ def mostloved(offset: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     to_return['totalCount'] = original_data_len
     return to_return
 
-# @app.post("/delete_all_records/")
-# def delete_records(db: Session = Depends(get_db)):
-#     crud.delete_all_records(db)
-#     return {"message": "All records deleted"}
+@app.post("/delete_all_records/")
+def delete_records(db: Session = Depends(get_db)):
+    crud.delete_all_records(db)
+    return {"message": "All records deleted"}
 
 # returns Daily Box Office Movies list
 def today():
